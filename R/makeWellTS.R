@@ -45,22 +45,26 @@ make_well_ts <- function(df, trim = TRUE, head = 0.1, tail = 0.9 , n_consec = 4)
     start_end <- trim_cons_runs(missings, val = 1L, head = head, tail = tail, n_consec = n_consec)
     well.ts <- well.ts[start_end$start:start_end$end, , drop = FALSE]
   }
-  
+
   # Interpolate missing values - see StackOverflow question here:
   # http://stackoverflow.com/questions/4964255/interpolate-
   # missing-values-in-a-time-series-with-a-seasonal-cycle
   # Answer by Rob Hyndman
   x <- stats::ts(well.ts$med_GWL, frequency = 12)
   
-  #Check for convergence fitting the time series model
-  struct <- suppressWarnings(stats::StructTS(x))
-  if (struct$code != 0) {
-    print(paste0("Convergence code for well ", well, " returned ", struct$code,
-                 ": ", struct$message))
+  if(length(x) > 1) { # Make sure more than one point
+    #Check for convergence fitting the time series model
+    struct <- suppressWarnings(stats::StructTS(x))
+    if (struct$code != 0) {
+      print(paste0("Convergence code for well ", well, " returned ", struct$code,
+                   ": ", struct$message))
+    }
+    
+    well.ts$fit <- as.vector(stats::ts(rowSums(stats::tsSmooth(struct)[, -2])))
+    # Fill in missing values
+  } else {
+    well.ts$fit <- NA
   }
-  
-  well.ts$fit <- as.vector(stats::ts(rowSums(stats::tsSmooth(struct)[, -2])))
-  # Fill in missing values
   
   well.ts <- dplyr::mutate(well.ts, 
                            Date = zoo::as.Date(.data$yearmonth),
