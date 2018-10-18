@@ -130,11 +130,13 @@ format_gwl <- function(data, which, quiet) {
   well_avg <- well_avg[, names(well_avg)[names(well_avg) != "year"]]
   well_avg <- tidyr::spread(well_avg, "type", "Value")
   
-  
-  
-  welldf <- dplyr::left_join(welldf, 
-                             well_avg[, c("dummydate", "max", "mean", "min")],
-                             by = "dummydate")
+  if(!all(is.na(well_avg$dummy_date))){
+    welldf <- dplyr::left_join(welldf, 
+                               well_avg[, c("dummydate", "max", "mean", "min")],
+                               by = "dummydate")
+  } else {
+    welldf <- dplyr::mutate(welldf, max = NA, mean = NA, min = NA)
+  }
   
   ################################
   # Need station name/location meta information!
